@@ -1,0 +1,29 @@
+#left_slot {
+    float:left;
+    width:75%;
+    height: 600px;
+    max-height: 600px;
+}
+
+#right_slot {
+    float:right;
+}
+
+#station_name#station_name {
+    clear:right;
+    color: #222;
+    /*font: 800 34px/34px "open sans";*/
+
+    text-transform: uppercase;
+}
+
+
+svg {
+    position: absolute;
+    margin-top: -50px;
+    border: 1px solid #bbb;
+}
+
+svg circle {
+    cursor: pointer;
+}
