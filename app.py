@@ -20,11 +20,25 @@ redline = [
 ]
 
 
-paths_red_base_alewife_bound = ["70063", "70065", "70067", "70069", "70071", "70073"]
-paths_ashmont_alewife_bound = paths_red_base_alewife_bound + ["700xx", "70090","70092", "70094"]
-paths_ashmont_bottom = paths_red_base_alewife_bound + ["70088", "70090","70092", "70094"]
+# Path data for red line
+paths_red_base_to_alewife = ["70062", "70064", "70066", "70068", "70070", "70072", 
+        "70074", "70076", "70078", "70080", "70082", "70084", "70086"]
+paths_from_ashmont_to_alewife = paths_red_base_to_alewife + ["70088", "70090","70092", "70094"]
+paths_from_braintree_to_alewife = paths_red_base_to_alewife + ["70098", "70100","70102", "70104", "70106"]
 
-#what do I want? pass in next stop and destination, get current stop
+paths_red_base_to_ashmont_braintree = ["70085", "70083", "70081", "70079", "70077",
+        "70075", "70073", "70071", "70069", "70067", "70065", "70063", "70061"]
+paths_from_alewife_to_ashmont = paths_red_base_to_ashmont_braintree + ["70093", "70091", "70089", "70087", "70085"]
+paths_from_alewife_to_braintree = paths_red_base_to_ashmont_braintree + ["70105", "70103", "70101", "70099", "70097"]
+
+def normalize_stop(stop_id):
+    # some stops have multiple platforms. we don't care about platforms, so normalize to stops
+    if stop_id in ['70096']: #jfk, destination alewife
+        return '70086'
+    elif stop_id in ['70095']: #jfk, destination braintree
+        return '70085'
+    else:
+        return stop_id
 
 def get_current_stop(next_stop_id, destination):
     
@@ -38,6 +52,8 @@ def get_current_stop(next_stop_id, destination):
     else:
         return paths_red_base_alewife_bound[index]
     
+
+
 
 
 """redline_stop_main = [{'Alewife': [70061]}, {'Davis': [70063]}, {'Porter': [70065]}, 'Harvard', 'Central', 'Kendall_MIT',

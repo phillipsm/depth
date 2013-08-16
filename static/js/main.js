@@ -1,3 +1,6 @@
+// receive mappings from api. draw current trains. 
+// 
+
 var stations = [
 	{"station": "alewife", "id": "s70061"},
 	{"station": "alewife", "id": "s70062"},
