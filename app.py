@@ -1,4 +1,5 @@
 import re, json, urllib2
+from math import fabs
 
 from flask import Flask, render_template, redirect, Response
 
@@ -47,11 +48,11 @@ paths_red_base_braintree_ashmont_to_alewife = {"Alewife": "70062", "Davis": "700
         "Park Street": "70076", "Downtown Crossing": "70078", "South Station": "70080", "Broadway": "70082",
         "Andrew": "70084", "JFK/UMass": "70086"}
         
-# Alewife to ashmont
+# Ashmont to Alewife
 paths_red_ashmont_to_savin_hill = {"Savin Hill": "70088", "Fields Corner": "70090", "Shawmut": "70092", "Ashmont": "70094"}
 paths_red_ashmont_to_alewife = dict(paths_red_base_braintree_ashmont_to_alewife.items() + paths_red_ashmont_to_savin_hill.items())
 
-# Alewife to braintree
+# Braintree to Alewife
 paths_red_braintree_to_n_quincy = {"North Quincy": "70098", "Wollaston": "70100", "Quincy Center": "70102", 
     "Quincy Adams": "70104", "Braintree": "70106"}
 paths_red_braintree_to_alewife = dict(paths_red_base_braintree_ashmont_to_alewife.items() + paths_red_braintree_to_n_quincy.items())
@@ -68,13 +69,50 @@ def get_starting_station(desination):
     elif destination in paths_red_ashmont_to_savin_hill.keys():
         return "Ashmont"
     elif destination in paths_red_braintree_to_n_quincy.keys():
-        return "Braintree"
+        return "Braintree"        
         
-        
-def get_current_stop(next_stop_id, destination):
+def get_current_stop_id(next_stop, destination):
     
+    if destination == 'Ashmont':
+        if int(paths_red_alewife_to_ashmont[next_stop]) + 2 <= int(paths_red_alewife_to_ashmont['Ashmont']):
+            return int(paths_red_alewife_to_ashmont[next_stop]) + 2
+        else:
+            return int(paths_red_alewife_to_ashmont[next_stop])
+            
+    elif destination == 'Braintree':
+        if int(paths_red_alewife_to_braintree[next_stop]) + 2 <= int(paths_red_alewife_to_braintree['Braintree']):
+            return int(paths_red_alewife_to_braintree[next_stop]) + 2
+        else:
+            return int(paths_red_alewife_to_braintree[next_stop])
+            
+    elif destination == 'Alewife':
+        if next_stop in paths_red_ashmont_to_savin_hill.keys():
+            current_stop_id = int(paths_red_ashmont_to_savin_hill[next_stop])
+        elif next_stop in paths_red_braintree_to_n_quincy.keys():
+            current_stop_id = int(paths_red_braintree_to_n_quincy[next_stop])
+        else:
+            current_stop_id = int(paths_red_base_braintree_ashmont_to_alewife[next_stop])
 
-
+        if current_stop_id - 2 >= int(paths_red_base_braintree_ashmont_to_alewife['Alewife']):
+            return current_stop_id - 2
+        else:
+            return current_stop_id
+    
+    
+def get_next_stop_id(next_stop, destination):
+    if destination == 'Ashmont':
+        next_stop_id = int(paths_red_alewife_to_ashmont[next_stop])
+    elif destination == 'Braintree':
+        next_stop_id = int(paths_red_alewife_to_braintree[next_stop])
+    elif destination == 'Alewife':
+        if next_stop in paths_red_ashmont_to_savin_hill.keys():
+            next_stop_id = int(paths_red_ashmont_to_savin_hill[next_stop])
+        elif next_stop in paths_red_braintree_to_n_quincy.keys():
+            next_stop_id = int(paths_red_braintree_to_n_quincy[next_stop])
+        else:
+            next_stop_id = int(paths_red_base_braintree_ashmont_to_alewife[next_stop])
+            
+    return next_stop_id
 
 @app.route('/')
 def landing():
@@ -151,12 +189,13 @@ def api():
     
     for trip in deserialized_json['TripList']['Trips']: #mock_data["TripList"]["Trips"]:
         
-        next_stop = normalize_stop(trip['Predictions'][0]['StopID'])
-        current_stop = normalize_stop(get_current_stop(next_stop, trip['Destination']))
+        next_stop = trip['Predictions'][0]['Stop']
+        current_stop_id = get_current_stop_id(next_stop, trip['Destination'])
+        next_stop_id = get_next_stop_id(next_stop, trip['Destination'])
         
         repackaged_trips.append({'trip_id': trip['TripID'],
-                    'current_stop': 's' + current_stop, 'next_stop': 's' + next_stop,
-                    'est_time': trip['Predictions'][0]['Seconds'] * 1000 })
+                    'current_stop': 's' + str(current_stop_id), 'next_stop': 's' + str(next_stop_id),
+                    'est_time': fabs(trip['Predictions'][0]['Seconds'] * 1000) })
     
     data = json.dumps(repackaged_trips)
     return Response(data, status=200, mimetype="application/json")

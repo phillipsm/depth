@@ -146,6 +146,7 @@ var update_trains = function() {
         var data = json;
 
         data.forEach(function(d, i) {
+            console.log('looking at ' + d.current_stop);
             svcontainer
             	.append("circle")
             	.attr("cx", station_lookup[d.current_stop].x_axis)	
@@ -156,14 +157,9 @@ var update_trains = function() {
             	.duration(d.est_time)
             	.attr("cx", station_lookup[d.next_stop].x_axis)
             	.attr("cy", station_lookup[d.next_stop].y_axis );
-            });
-
-
-
-
-		
+            });	
     });
 	
 };
 
-//update_trains();
+update_trains();
