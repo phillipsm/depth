@@ -102,17 +102,6 @@ var station_lookup = {
 	"s70106": {"x_axis": 912, "y_axis": 945}
 };
 
-var directions = {	
-	"alewife": {"name": "Alewife", "right": "davis", "down": "davis", "fill": "white", "stroke": "red"},
-	"davis": {"name": "Davis", "right": "porter", "down": "porter", "left": "alewife", "up": "alewife", "fill": "white", "stroke": "red"},
-	"porter": {"name": "Porter", "right": "harvard", "down": "harvard", "left": "davis", "up": "davis", "fill": "white", "stroke": "red"},
-	"harvard": {"name": "Harvard", "right": "central", "down": "central", "left": "porter", "up": "porter", "fill": "white", "stroke": "red"},
-	"central": {"name": "Central", "right": "kendall", "down": "kendall", "left": "harvard", "up": "harvard", "fill": "white", "stroke": "red"},
-	"kendall_mit": {"name": "Kendall/MIT", "right": "charles_mgh", "down": "charles_mgh", "left": "central", "up": "central", "fill": "white", "stroke": "red"},
-	"charles_mgh": {"name": "Charles/MGH", "right": "park", "down": "park", "left": "kendall", "up": "kendall", "fill": "white", "stroke": "red"},
-	"park": {"name": "Park Street", "right": "park", "down": "park", "left": "charles_mgh", "up": "charles_mgh", "fill": "white", "stroke": "red"}
-};
-
 var svcontainer = d3.select("svg");
 
 var stations = svcontainer.selectAll("stations")
@@ -123,43 +112,81 @@ var stations = svcontainer.selectAll("stations")
 	.attr("cy", function (d) { return station_lookup[d.id].y_axis; })
 	.attr("r", 4)
 	.attr("fill", 'blue');
-	//.attr("id", function (d) { return d.id; });
 
-/*var texts = svcontainer.selectAll("text")
-    .data(station_names)
-    .enter()
-    .append("text")
-    .attr("x", function (d) { return d.x_axis; })
-    .attr("y", function (d) { return d.y_axis; })
-    .attr("dy", ".1em")
-    .attr("transform", function (d) { return "rotate(-45 " + Math.round(d.x_axis + 20) + "," + Math.round(d.y_axis - 10) + ")"; })
-    .attr("text-anchor", "right")
-    .style("font", "18px Helvetica Neue")
-    .text(function (d) { return directions[d.id].name; });*/
+
+var locations = {};
 
 var update_trains = function() {
     // add all stops to map
     
     d3.json("/api", function(error, json) {
-        console.log(json);
-        if (error) return console.warn(error);
-        var data = json;
+        if (error) {
+            return console.warn(error);
+        }        
 
-        data.forEach(function(d, i) {
-            console.log('looking at ' + d.current_stop);
-            svcontainer
-            	.append("circle")
-            	.attr("cx", station_lookup[d.current_stop].x_axis)	
-            	.attr("cy", station_lookup[d.current_stop].y_axis)
-            	.attr("r", 5)
-            	.attr("fill", '#fff')
-            	.transition()
-            	.duration(d.est_time)
-            	.attr("cx", station_lookup[d.next_stop].x_axis)
-            	.attr("cy", station_lookup[d.next_stop].y_axis );
-            });	
+        json.forEach(function(d, i) {
+            
+            if (d.trip_id in locations) {
+                
+                var trip = d3.select('#' + d.trip_id);
+                
+                if (locations[d.trip_id].next_x !== station_lookup[d.next_stop].x_axis ||
+            	    locations[d.trip_id].next_y !== station_lookup[d.next_stop].y_axis ||
+                	locations[d.trip_id].est_time !== station_lookup[d.next_stop].est_time) {
+                
+                	locations[d.trip_id].next_x = station_lookup[d.next_stop].x_axis;
+                	locations[d.trip_id].next_y = station_lookup[d.next_stop].y_axis;
+                	locations[d.trip_id].est_time = station_lookup[d.next_stop].est_time;
+            	
+                    trip
+                    	.transition()
+                    	.attr("fill", '#fff')
+                    	.duration(d.est_time)
+                    	.attr("cx", station_lookup[d.next_stop].x_axis)
+                    	.attr("cy", station_lookup[d.next_stop].y_axis );
+                	
+                    console.log('updating location, ' + d.trip_id);
+                }
+                else {
+                    var now = new Date().getTime();
+                    
+                    if (locations[d.trip_id].stale_since && locations[d.trip_id].stale_since < now - 180000) {
+                            trip
+                                .transition()
+                                .style("opacity", 0)
+                            	.remove();
+                            	
+                            console.log(locations[d.trip_id] + ' is stale. Removing')
+                    } else {                    
+                        locations[d.trip_id].stale_since = now;
+                    }
+                }
+            	
+        	} else {
+        	    locations[d.trip_id] = {"next_x": station_lookup[d.next_stop].x_axis,
+            	    "next_y": station_lookup[d.next_stop].y_axis,
+            	    "est_time": station_lookup[d.next_stop].est_time}
+            	    
+        	    svcontainer
+                	.append("circle")
+                	.attr("id", d.trip_id)
+                	.attr("cx", station_lookup[d.current_stop].x_axis)	
+                	.attr("cy", station_lookup[d.current_stop].y_axis)
+                	.attr("r", 5)
+                	.attr("fill", 'orange')
+                	.transition()
+                	.duration(d.est_time)
+                	.attr("cx", station_lookup[d.next_stop].x_axis)
+                	.attr("cy", station_lookup[d.next_stop].y_axis );
+            	    
+                console.log('adding location, ' + d.trip_id);
+        	}
+        });	
+        
+        
+        console.log('done updating. see you in 30 secs');
     });
 	
 };
-
 update_trains();
+window.setInterval(update_trains, 30000);
